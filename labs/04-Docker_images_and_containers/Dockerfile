@@ -1,2 +1,2 @@
-FROM ubuntu:15.04
-CMD echo "Hello by <NOME> <COGNOME>!"
+FROM alpine:latest
+CMD echo "Hello by Edoardo Querio Gianetto!"
