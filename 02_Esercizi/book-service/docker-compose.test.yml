@@ -1,0 +1,14 @@
+# Esecuzione test in ambiente containerizzato (CI/CD).
+# Monta il codice come volume per eseguire i test senza rebuild.
+#
+# Usage:
+#   docker compose -f docker-compose.test.yml up --abort-on-container-exit
+services:
+  book-service-test:
+    build:
+      context: .
+      dockerfile: Dockerfile.test
+    container_name: book-service-test
+    environment:
+      DATABASE_TYPE: sqlite
+    command: python -m pytest tests/ -v --tb=short

@@ -1,0 +1,50 @@
+services:
+  # --- Database PostgreSQL ---
+  db:
+    image: postgres:16-alpine
+    container_name: book-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: books
+    volumes:
+      - pg-data:/var/lib/postgresql/data
+    networks:
+      - book-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # --- Book Service (FastAPI) ---
+  book-service:
+    build: .
+    container_name: book-service
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - book-network
+    environment:
+      DATABASE_TYPE: postgres
+      DATABASE_URL: postgresql://postgres:postgres@db:5432/books
+      HOST: 0.0.0.0
+      PORT: 8000
+      LOG_LEVEL: INFO
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 10s
+    restart: unless-stopped
+
+volumes:
+  pg-data:
+
+networks:
+  book-network:
