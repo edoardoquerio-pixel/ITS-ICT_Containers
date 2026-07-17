@@ -17,6 +17,9 @@ class Settings:
     PORT: int = int(os.getenv("PORT", "8000"))
     LOG_LEVEL: str = os.getenv("LOG_LEVEL", "INFO")
 
+    # URL dei servizi dipendenti (inter-servizio)
+    BOOK_SERVICE_URL: str = os.getenv("BOOK_SERVICE_URL", "http://book-service:8000")
+
     @property
     def DATABASE_HOST(self) -> str:
         return self.DATABASE_URL.split("@")[1].split(":")[0] if "@" in self.DATABASE_URL else "localhost"

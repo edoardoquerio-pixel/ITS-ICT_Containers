@@ -13,7 +13,7 @@ Piattaforma REST di gestione libreria composta da **7 microservizi + PostgreSQL*
   │serv.│  │serv.│  │serv.  │  │serv. │  │ serv.    │  │ion serv.│
   │:8000│  │:8000│  │:8000  │  │:8000 │  │ :8000    │  │ :8000   │
   └──┬──┘  └─────┘  └───────┘  └──────┘  └──────────┘  └─────────┘
-     │      (in-mem)  (in-mem)  (in-mem)   (in-mem)      (in-mem)
+     │      (PGSQL)   (PGSQL)   (PGSQL)    (PGSQL)       (PGSQL)
   ┌──▼──┐
   │Postg│
   │reSQL│
@@ -26,6 +26,8 @@ Piattaforma REST di gestione libreria composta da **7 microservizi + PostgreSQL*
 ---
 
 ## Architettura
+
+Tutti i servizi usano **SQLAlchemy 2.0** come ORM con **PostgreSQL 16** come database, con supporto **dual-database** (SQLite in-memory per test).
 
 ### 1. API Gateway — nginx
 
@@ -61,9 +63,9 @@ CRUD completo per la risorsa **libri** con persistenza PostgreSQL.
 
 **Dual-database**: PostgreSQL in produzione, SQLite in-memory per test.
 
-### 3. user-service — FastAPI (in-memory)
+### 3. user-service — FastAPI + PostgreSQL + SQLAlchemy
 
-CRUD per la risorsa **utenti** con storage in-memory (dict list).
+CRUD per la risorsa **utenti** con persistenza PostgreSQL tramite SQLAlchemy (dual-database SQLite per test).
 
 | Metodo | Endpoint | Codice | Descrizione |
 |--------|----------|--------|-------------|
@@ -72,9 +74,9 @@ CRUD per la risorsa **utenti** con storage in-memory (dict list).
 | `POST` | `/users` | 201 | Crea utente (name, email) |
 | `DELETE` | `/users/{id}` | 204 / 404 | Elimina utente |
 
-### 4. loan-service — FastAPI (in-memory)
+### 4. loan-service — FastAPI + PostgreSQL + SQLAlchemy
 
-Gestione **prestiti libri** con storage in-memory.
+Gestione **prestiti libri** con persistenza PostgreSQL tramite SQLAlchemy (dual-database SQLite per test).
 
 | Metodo | Endpoint | Codice | Descrizione |
 |--------|----------|--------|-------------|
@@ -83,9 +85,9 @@ Gestione **prestiti libri** con storage in-memory.
 | `POST` | `/loans` | 201 | Crea prestito (user_id, book_id) |
 | `PUT` | `/loans/{id}/return` | 200 / 404 | Restituzione libro |
 
-### 5. review-service — FastAPI (in-memory)
+### 5. review-service — FastAPI + PostgreSQL + SQLAlchemy
 
-Gestione **recensioni libri** con storage in-memory.
+Gestione **recensioni libri** con persistenza PostgreSQL tramite SQLAlchemy (dual-database SQLite per test).
 
 | Metodo | Endpoint | Codice | Descrizione |
 |--------|----------|--------|-------------|
@@ -94,9 +96,9 @@ Gestione **recensioni libri** con storage in-memory.
 | `GET` | `/reviews/by-book/{book_id}` | 200 | Recensioni per libro |
 | `POST` | `/reviews` | 201 / 422 | Crea recensione (book_id, user_id, rating 1-5, comment) |
 
-### 6. inventory-service — FastAPI (in-memory)
+### 6. inventory-service — FastAPI + PostgreSQL + SQLAlchemy
 
-Gestione **scorte/libri** con dizionario book_id → quantità.
+Gestione **scorte/libri** con persistenza PostgreSQL tramite SQLAlchemy (dual-database SQLite per test).
 
 | Metodo | Endpoint | Codice | Descrizione |
 |--------|----------|--------|-------------|
@@ -104,9 +106,9 @@ Gestione **scorte/libri** con dizionario book_id → quantità.
 | `GET` | `/inventory/{book_id}` | 200 / 404 | Scorta per libro |
 | `POST` | `/inventory` | 201 | Imposta scorta (book_id, quantity) |
 
-### 7. notification-service — FastAPI (in-memory)
+### 7. notification-service — FastAPI + PostgreSQL + SQLAlchemy
 
-Invio simulato di **notifiche** (email/sms/push) con log in-memory.
+Invio simulato di **notifiche** (email/sms/push) con persistenza PostgreSQL tramite SQLAlchemy (dual-database SQLite per test).
 
 | Metodo | Endpoint | Codice | Descrizione |
 |--------|----------|--------|-------------|
@@ -122,8 +124,8 @@ Invio simulato di **notifiche** (email/sms/push) con log in-memory.
 | Linguaggio | Python 3.14 |
 | Framework API | FastAPI ≥ 0.100 |
 | Validazione | Pydantic ≥ 2.0 |
-| ORM (solo book) | SQLAlchemy 2.0 |
-| Database (book) | PostgreSQL 16 |
+| ORM | SQLAlchemy 2.0 (tutti i servizi) |
+| Database | PostgreSQL 16 (tutti i servizi) |
 | Driver DB | psycopg2-binary |
 | Server ASGI | Uvicorn ≥ 0.20 |
 | Reverse proxy | nginx 1.31 (alpine) |
@@ -149,23 +151,28 @@ Invio simulato di **notifiche** (email/sms/push) con log in-memory.
 │   ├── requirements.txt
 │   └── README.md
 ├── user-service/
-│   ├── app/main.py                 # CRUD utenti (in-memory)
+│   ├── app/                        # FastAPI + PostgreSQL + SQLAlchemy
+│   ├── tests/                      # pytest
 │   ├── Dockerfile
 │   └── requirements.txt
 ├── loan-service/
-│   ├── app/main.py                 # Prestiti libri (in-memory)
+│   ├── app/                        # FastAPI + PostgreSQL + SQLAlchemy
+│   ├── tests/                      # pytest
 │   ├── Dockerfile
 │   └── requirements.txt
 ├── review-service/
-│   ├── app/main.py                 # Recensioni (in-memory)
+│   ├── app/                        # FastAPI + PostgreSQL + SQLAlchemy
+│   ├── tests/                      # pytest
 │   ├── Dockerfile
 │   └── requirements.txt
 ├── inventory-service/
-│   ├── app/main.py                 # Scorte (in-memory)
+│   ├── app/                        # FastAPI + PostgreSQL + SQLAlchemy
+│   ├── tests/                      # pytest
 │   ├── Dockerfile
 │   └── requirements.txt
 └── notification-service/
-    ├── app/main.py                 # Notifiche simulate (in-memory)
+    ├── app/                        # FastAPI + PostgreSQL + SQLAlchemy
+    ├── tests/                      # pytest
     ├── Dockerfile
     └── requirements.txt
 ```
@@ -278,24 +285,25 @@ docker compose up -d --build <service-name>
 ## Test
 
 ```bash
-# Test solo book-service (42 test)
-cd book-service && python -m pytest tests/ -v
+# Test di tutti i servizi
+cd <service-name> && python -m pytest tests/ -v
 
 # Test con coverage
-cd book-service && python -m pytest tests/ --cov=app -v
+cd <service-name> && python -m pytest tests/ --cov=app -v
 ```
 
-Per i nuovi servizi (in-memory), eseguire test manuali tramite curl come sopra.
+Per i nuovi servizi, eseguire test manuali tramite curl come sopra.
 
 ---
 
 ## Kubernetes
 
-Il solo book-service ha manifest K8s in `book-service/k8s/`. Per deploy completo su cluster:
+Tutti i servizi hanno manifest K8s pronti. Per deploy completo su cluster:
 
-1. Convertire ogni servizio in deployment + service K8s
-2. Aggiungere nginx Ingress Controller per il routing
-3. Sostituire PostgreSQL con managed DB (es. Cloud SQL)
+1. Verificare che i manifest di ogni servizio siano configurati correttamente
+2. Applicare i manifest con `kubectl apply -f <service>/k8s/`
+3. Aggiungere nginx Ingress Controller per il routing
+4. Sostituire PostgreSQL con managed DB (es. Cloud SQL) per produzione
 
 ---
 
@@ -304,7 +312,7 @@ Il solo book-service ha manifest K8s in `book-service/k8s/`. Per deploy completo
 | Scelta | Motivazione |
 |--------|------------|
 | **API Gateway (nginx)** | Singolo punto di ingresso, routing trasparente, nessuna modifica ai servizi |
-| **In-memory per 5 servizi** | Demo pronta senza configurazione DB esterna; facilmente sostituibile con SQLite/PostgreSQL |
+| **PostgreSQL + SQLAlchemy per tutti i servizi** | Persistenza reale su database relazionale con ORM; schema unico e testabile |
 | **Servizi indipendenti** | Ogni servizio ha il proprio storage, build, healthcheck; scalabile individualmente |
 | **redirect_slashes=False** | Previene redirect 307 su `/users` vs `/users/`, comportamento coerente via gateway |
 | **Python:3.14-slim** | Base image minimale per servizi Python semplici |
@@ -315,7 +323,7 @@ Il solo book-service ha manifest K8s in `book-service/k8s/`. Per deploy completo
 
 ## Possibili estensioni
 
-- **Persistenza reale** per user/loan/review/inventory/notification (SQLite → PostgreSQL)
+- **Persistenza reale** — già implementata: tutti i servizi usano PostgreSQL + SQLAlchemy
 - **Comunicazione inter-servizio** (es. loan-service chiama inventory per decrementare stock)
 - **Autenticazione JWT** su API gateway
 - **Rate limiting** nginx per endpoint pubblici

@@ -4,9 +4,17 @@ from sqlalchemy.orm import Session
 
 from app.repositories import repository
 from app.schemas.schemas import Review, ReviewCreate
+from app.services.client import check_book_exists
 
 
-def create_review(db: Session, review_in: ReviewCreate) -> Review:
+async def create_review_async(db: Session, review_in: ReviewCreate) -> Review:
+    """Crea una recensione dopo aver verificato che il libro esista."""
+    exists = await check_book_exists(review_in.book_id)
+    if not exists:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Il libro specificato non esiste",
+        )
     return repository.create(db, review_in)
 
 

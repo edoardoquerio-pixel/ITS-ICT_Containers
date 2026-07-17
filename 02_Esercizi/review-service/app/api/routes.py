@@ -30,5 +30,5 @@ def get_review(review_id: int, db: Session = Depends(get_db)):
 
 
 @router.post("", response_model=Review, status_code=status.HTTP_201_CREATED)
-def create_review(review_in: ReviewCreate, db: Session = Depends(get_db)):
-    return review_service.create_review(db, review_in)
+async def create_review(review_in: ReviewCreate, db: Session = Depends(get_db)):
+    return await review_service.create_review_async(db, review_in)
