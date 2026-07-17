@@ -1,0 +1,5 @@
+**/.vagrant
+**/*.log
+**/*.tar.gz
+**/.DS_Store
+**/*.bkp

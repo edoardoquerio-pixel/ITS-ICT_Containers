@@ -1,0 +1,15 @@
+# Override per sviluppo locale.
+# Attiva hot-reload con uvicorn --reload e monta il codice come volume.
+# Usare: docker compose up -d
+services:
+  book-service:
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    volumes:
+      - ./app:/app/app
+    develop:
+      watch:
+        - action: sync
+          path: ./app
+          target: /app/app
+          ignore:
+            - __pycache__/

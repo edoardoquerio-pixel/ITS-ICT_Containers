@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Azure E2E Lab - Frontend</title>
+    <style>
+        body {font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 0; padding: 20px; background-color: #f5f5f5;}
+        .container {max-width: 800px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1);}
+        h1 {color: #0078d4; text-align: center; margin-bottom: 30px;}
+        .section {margin-bottom: 30px; padding: 20px; border: 1px solid #e0e0e0; border-radius: 6px; background-color: #fafafa;}
+        .section h2 {margin-top: 0; color: #333;}
+        label {display: block; margin-bottom: 5px; font-weight: bold;}
+        input[type="text"], textarea {width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; margin-bottom: 15px; font-family: inherit;}
+        textarea {resize: vertical; min-height: 80px;}
+        button {background-color: #0078d4; color: white; border: none; padding: 12px 24px; border-radius: 4px; cursor: pointer; font-size: 16px; transition: background-color 0.2s;}
+        button:hover {background-color: #005a9e;}
+        button:disabled {background-color: #cccccc; cursor: not-allowed;}
+        #formResult {margin-top: 15px; padding: 10px; border-radius: 4px;}
+        .success {background-color: #d4edda; color: #155724; border: 1px solid #c3e6cb;}
+        .error {background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb;}
+        #results {margin-top: 20px;}
+        .message-card {background: #f8f9fa; border-left: 4px solid #0078d4; padding: 15px; margin-bottom: 15px; border-radius: 0 4px 4px 0;}
+        .message-header {display: flex; justify-content: space-between; margin-bottom: 8px;}
+        .message-author {font-weight: bold; color: #0078d4;}
+        .message-time {font-size: 0.85em; color: #666;}
+        .message-content {margin-bottom: 10px; line-height: 1.5;}
+        .empty-state {text-align: center; color: #666; font-style: italic; padding: 40px 20px;}
+        .spinner {display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(0,0,0,0.3); border-radius: 50%; border-top-color: #0078d4; animation: spin 0.8s ease-in-out infinite; vertical-align: middle; margin-left: 8px;}
+        @keyframes spin {to {transform: rotate(360deg);}}
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Demo Azure Functions + Cosmos DB</h1>
+
+        <div class="section">
+            <h2>Invia una nuova richiesta</h2>
+            <form id="requestForm">
+                <div>
+                    <label for="userInput">Nome:</label>
+                    <input type="text" id="userInput" placeholder="Inserisci il tuo nome" required>
+                </div>
+                <div>
+                    <label for="messageInput">Messaggio:</label>
+                    <textarea id="messageInput" placeholder="Scrivi il tuo messaggio" rows="3" required></textarea>
+                </div>
+                <button type="submit" id="submitBtn">
+                    <span id="spinner" class="spinner" style="display: none;"></span>
+                    Invia Messaggio
+                </button>
+            </form>
+            <div id="formResult"></div>
+        </div>
+
+        <div class="section">
+            <h2>Richieste Ricevute</h2>
+            <div>
+                <button id="refreshBtn">
+                    <span class="spinner" style="display: none;"></span>
+                    Aggiorna Elenco
+                </button>
+            </div>
+            <div id="results"></div>
+        </div>
+    </div>
+
+    <script>
+        // Configuration
+        const config = {
+            functionAppUrl: 'https://funcapp-e2e07171436.azurewebsites.net' // Will be replaced if needed
+        };
+
+        // DOM elements
+        const form = document.getElementById('requestForm');
+        const userInput = document.getElementById('userInput');
+        const messageInput = document.getElementById('messageInput');
+        const submitBtn = document.getElementById('submitBtn');
+        const spinner = document.getElementById('spinner');
+        const formResult = document.getElementById('formResult');
+        const refreshBtn = document.getElementById('refreshBtn');
+        const resultsDiv = document.getElementById('results');
+
+        // Helper to show/hide loading states
+        function setButtonLoading(button, loading) {
+            if (loading) {
+                button.disabled = true;
+                const sp = button.querySelector('.spinner');
+                if (sp) sp.style.display = 'inline-block';
+            } else {
+                button.disabled = false;
+                const sp = button.querySelector('.spinner');
+                if (sp) sp.style.display = 'none';
+            }
+        }
+
+        // Form submission
+        form.addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const user = userInput.value.trim();
+            const message = messageInput.value.trim();
+
+            if (!user || !message) {
+                showResult('Per favore inserisci sia nome che messaggio', 'error');
+                return;
+            }
+
+            setButtonLoading(submitBtn, true);
+            formResult.textContent = '';
+            formResult.className = '';
+
+            try {
+                const response = await fetch(`${config.functionAppUrl}/api/crea_richiesta`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ utente: user, messaggio: message })
+                });
+
+                if (!response.ok) {
+                    const errorText = await response.text();
+                    throw new Error(`Errore ${response.status}: ${errorText}`);
+                }
+
+                const result = await response.json();
+                showResult(`Messaggio inviato con successo! ID: ${result.id}`, 'success');
+                form.reset();
+                // Optionally refresh the list
+                loadMessages();
+            } catch (err) {
+                showResult(`Errore: ${err.message}`, 'error');
+            } finally {
+                setButtonLoading(submitBtn, false);
+            }
+        });
+
+        function showResult(message, type) {
+            if (!message) {
+                formResult.textContent = '';
+                formResult.className = '';
+                return;
+            }
+            formResult.textContent = message;
+            formResult.className = `${type}`;
+        }
+
+        // Load and display messages
+        async function loadMessages() {
+            // Show loading indicator
+            resultsDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #666;">Caricamento...</div>';
+
+            try {
+                const response = await fetch(`${config.functionAppUrl}/api/lista_richieste`);
+                if (!response.ok) {
+                    throw new Error(`Errore ${response.status}: ${await response.text()}`);
+                }
+                const messages = await response.json();
+                renderMessages(messages);
+            } catch (err) {
+                resultsDiv.innerHTML = `<div style="text-align: center; padding: 40px; color: #d32f2f;">Errore nel caricamento: ${err.message}</div>`;
+            }
+        }
+
+        function renderMessages(messages) {
+            if (messages.length === 0) {
+                resultsDiv.innerHTML = '<div class="empty-state">Nessun messaggio trovato. Invia il primo messaggio!</div>';
+                return;
+            }
+
+            // Sort by timestamp descending (most recent first)
+            const sorted = [...messages].sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
+
+            const container = document.createElement('div');
+            // Limit to last 50 messages for performance
+            const displayMessages = sliced.slice(0, 50);
+
+            displayMessages.forEach(msg => {
+                const card = document.createElement('div');
+                card.className = 'message-card';
+
+                const date = new Date(msg.timestamp);
+                const timeString = date.toLocaleString('it-IT', {
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+
+                // Simple escape for HTML
+                const escapeHtml = (str) => {
+                    const div = document.createElement('div');
+                    div.appendChild(document.createTextNode(str));
+                    return div.innerHTML;
+                };
+                const safeUtente = escapeHtml(String(msg.utente));
+                const safeMessaggio = escapeHai(String(msg.messaggio));
+
+                card.innerHTML = `
+                    <div class="message-header">
+                        <span class="message-author">${safeUtente}</span>
+                        <span class="message-time">${timeString}</span>
+                    </div>
+                    <div class="message-content">${safeMessaggio}</div>
+                `;
+                container.appendChild(card);
+            });
+
+            // Clear and append
+            resultsDiv.innerHTML = '';
+            resultsDiv.appendChild(container);
+        }
+
+        // Refresh button handler
+        refreshBtn.addEventListener('click', () => {
+            setButtonLoading(refreshBtn, true);
+            loadMessages().finally(() => setButtonLoading(refreshBtn, false));
+        });
+
+        // Initial load
+        window.addEventListener('load', loadMessages);
+    </script>
+</body>
+</html>

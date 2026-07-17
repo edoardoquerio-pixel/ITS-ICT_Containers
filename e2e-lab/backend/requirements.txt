@@ -1,0 +1,5 @@
+# Azure Functions core
+azure-functions
+
+# Per binding Cosmos DB (richiesto da extension bundle)
+# L'extension bundle in host.json include già Cosmos DB

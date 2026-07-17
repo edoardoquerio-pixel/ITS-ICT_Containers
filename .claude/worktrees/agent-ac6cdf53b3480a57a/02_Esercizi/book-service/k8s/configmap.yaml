@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: book-service-config
+  namespace: book-service
+data:
+  DATABASE_TYPE: "postgres"
+  DATABASE_URL: "postgresql://postgres:postgres@book-db:5432/books"
+  HOST: "0.0.0.0"
+  PORT: "8000"
+  LOG_LEVEL: "INFO"

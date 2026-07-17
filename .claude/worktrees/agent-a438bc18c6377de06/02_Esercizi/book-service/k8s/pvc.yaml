@@ -1,0 +1,24 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-data
+  namespace: book-service
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: book-db
+  namespace: book-service
+spec:
+  selector:
+    app: book-db
+  ports:
+    - port: 5432
+      targetPort: 5432
+  clusterIP: None
